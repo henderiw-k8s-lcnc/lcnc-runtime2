@@ -1,0 +1,38 @@
+var:
+  links: 
+    query: "topo.yndd.io/v1alpha1/Link"
+    selector: "infra" # need to determine the key
+resources:
+- resource:
+  - gvk: yndd.io/v1alpha1/NodeInfo
+    type: internal
+  - gvk: yndd.io/v1alpha1/AS
+    type: alloc
+  - gvk: yndd.io/v1alpha1/IPSubnet
+    type: alloc
+  - gvk: yndd.io/v1alpha1/IPAaddress
+    type: alloc
+  fn: 
+    name: gatherNode Info # this image would query the k8s api with node
+    input:
+      for: $links
+    query:
+    - gvk: "topo.yndd.io/v1alpha1/Link"
+      selector: $link.spec.x.y.z
+- resource:
+  - gvk: "config.yndd.io/v1alpha1/Config"
+    type: # external is implicit
+  fn:
+    name: buildConfigCR
+    input:
+      for: "internal.yndd.io/v1alpha1/NodeInfo"
+- resource:
+  - gvk: "state.yndd.io/v1alpha1/State"
+    fn:
+      name: buildStateCR
+      input:
+        for: "internal.yndd.io/v1alpha1/NodeInfo"
+      data: 
+      - path 1
+      - path 2
+      - ...

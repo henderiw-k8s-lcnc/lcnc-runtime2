@@ -1,0 +1,25 @@
+var: 
+  templates: cr.spec.templates             # returns a list with names
+  discovery-rules: cr.spec.discovery-rules # returns a list with names
+
+resources:
+- resource: 
+  - "topo.yndd.io/v1alpha1, Kind=Topology" # resource defines the output
+  name: cr.metadata.name
+  fn: topo.img
+- resource: 
+  - "topo.yndd.io/v1alpha1, Kind=Node" # resource defines the output
+  count: 
+    len: $discovery-rules 
+    query: topo.yndd.io/v1alpha1, Kind=Target # this creates an implicit dependency
+    selector: $discovery-rules.$Index.name
+  fn: node.img
+- resource:
+  - "topo.yndd.io/v1alpha1, Kind=Node" # resource defines the output
+  - "topo.yndd.io/v1alpha1, Kind=Link" # resource defines the output
+  count: 
+    len: $templates
+    query: topo.yndd.io/v1alpha1, Kind=Template # this creates an implicit dependency
+    selector: $templates.$Index.name
+  fn: fabric.img # this image need to query the templates again to get additional templates if they are in the spec.
+

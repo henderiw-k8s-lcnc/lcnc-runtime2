@@ -1,0 +1,65 @@
+for: 
+  infra: infra.yndd.io/v1alpha1/Infrastructure
+
+var:
+  links:
+    query: topo.yndd.io/v1alpha1/Link
+    selector:
+      matchLabels:
+        yndd.io/topology: $infra.spec.topology
+        yndd.io/linktype: infra
+  nodes:
+    query: topo.yndd.io/v1alpha1/Node
+    selector:
+      matchLabels:
+        yndd.io/topology: $infra.spec.topology
+
+resources:
+- image: networkInfraAllocator
+  for:
+    range: $links
+    #iterator_var1: $i
+    iterator_var2: $link
+  config: tbd
+  input: 
+    - { $Link }
+    - { $linkEpA: {query: $nodes, selector: { name: $link.spec.endpointA }} }
+    - { $linkEpB: {query: $nodes, selector: { name: $link.spec.endpointB }} }
+  output: 
+    - yndd.io/v1alpha1/NodeInfo: {type: internal}
+    #- yndd.io/v1alpha1/IPAllocation: {type: internal} -> implicit, uses conditions
+    #- yndd.io/v1alpha1/ASAllocation: {type: internal} -> implicit, uses conditions
+- image: infraConfig
+  for: 
+    range: {gvk: yndd.io/v1alpha1/NodeInfo}
+    #iterator_var1: $i
+    iterator_var2: $nodeInfo
+  input:
+    - { $nodeInfo }
+    - { $asAllocations: {query: yndd.io/v1alpha1/AsAllocation, selector: {matchLabels: { yndd.io/nodeName: $nodeInfo.name}}}}
+    - { $ipAllocations: {query: yndd.io/v1alpha1/IPAllocation, selector: {matchLabels: { yndd.io/nodeName: $nodeInfo.name}}}}    
+  output: 
+    - yndd.io/v1alpha1/Config
+- image: state
+  for: 
+    range: {gvk: yndd.io/v1alpha1/NodeInfo}
+    #iterator_var1: $i
+    iterator_var2: $nodeInfo
+  config: stateInfo
+  input:
+    - { $nodeInfo }
+  output: 
+    - yndd.io/v1alpha1/State
+    
+services:
+- asInjection
+- ipInjection
+
+# function -> name: infraConfig implements libraries
+      #createInterface: physical (lag, member), loopback/system, irb
+      #createTunnelInterface: vxlan or mple
+      #create SubInterface: loopback/system
+      #create route policy
+      #create network instance
+      #create bgp, group, evpn
+      #create system evpn constructs

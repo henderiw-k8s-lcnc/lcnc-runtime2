@@ -1,0 +1,61 @@
+for: 
+  infra: topo.yndd.io/v1alpha1/TopologyDefinition
+
+var: 
+  allTemplates: # returns a list (includes the name of the template)
+    query: topo.yndd.io/v1alpha1/Templates
+  parentTemplateNames:
+    for:
+      range: $infra.spec.properties.templates
+      #iterator_var1: $i
+      iterator_var2: $definitionRule
+    slice: $definitionRule.name
+  parentTemplates:  # returns a list (includes the name of the template)
+    for:
+      range: $parentTemplateNames
+      #iterator_var1: $i
+      iterator_var2: $parentTemplateName
+    map:
+      key: $parentTemplateName
+      value: {query: $allTemplates, selector: { name: parentTemplateName}}
+  childTemplates:
+    for:
+      range: $parentTemplates
+      #iterator_var1: $i
+      iterator_var2: $parentTemplate
+    map:
+      key: $parentTemplate.metadata.name
+      value: {query: $allTemplates, selector: { name: "parentTemplate.spec.properties.fabric.pod[*].definitionRef"}}
+  discoveryRuleNames:
+    for:
+      range: $infra.spec.properties.discoveryRules
+      #iterator_var1: $i
+      iterator_var2: $definitionRule
+    slice: $definitionRule.name
+
+resources:
+- image: topology
+  input:
+    - { $infra } # can be implicit
+  output: 
+    - topo.yndd.io/v1alpha1/Topology
+- image: topologyBuilderFromTemplate
+  for:
+    range: $parentTemplates
+    iterator_var1: $parentTemplateName
+    iterator_var2: $parentTemplate
+  input:
+    - { $parentTemplate: {} }
+    - { $childTemplates: { query: $childTemplates, selector: { key: $parentTemplateName}} }
+  output: 
+  - topo.yndd.io/v1alpha1/Node  # resource defines the output
+  - topo.yndd.io/v1alpha1/Link  # resource defines the output
+- image: nodeBuilderFromDiscoveryRule
+  for:
+    range: $discoveryRuleNames
+    iterator_var1: $parentTemplateName
+    iterator_var2: $parentTemplate
+  input:
+    - { $targets: { query: $childTemplates, selector: { key: $parentTemplateName}} }
+  output: 
+  - topo.yndd.io/v1alpha1/Node  # resource defines the output

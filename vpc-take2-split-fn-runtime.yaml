@@ -1,0 +1,46 @@
+for: 
+  vpc: infra.yndd.io/v1alpha1/Vpc
+
+var:
+  nodes:
+    query: topo.yndd.io/v1alpha1/Node
+    selector:
+      matchLabels:
+        yndd.io/topology: $infra.spec.topology
+  links:
+    query: topo.yndd.io/v1alpha1/Link
+    selector:
+      matchLabels:
+        yndd.io/topology: $infra.spec.topology
+        yndd.io/linktype: not infra
+
+resource:
+- image: selectedNodeInterfaces # for bridges and routing tables, irb
+  input: 
+    - { $nodes }
+    - { $links }
+  output:
+    - { yndd.io/v1alpha1/Interfaces: {type: internal}}
+    #- yndd.io/v1alpha1/NIAllocation: {type: internal} -> implicit, uses conditions
+    #- yndd.io/v1alpha1/IPAllocation: {type: internal} -> implicit, uses conditions
+- image: 
+  for:
+    range: {gvk: yndd.io/v1alpha1/Interfaces}
+    iterator2: interface
+  input: 
+  - { $interface }
+  - { $asAllocations: {query: yndd.io/v1alpha1/AsAllocation, selector: {matchLabels: { yndd.io/nodeName: $nodeInfo.name}}}}
+  - { $ipAllocations: {query: yndd.io/v1alpha1/IPAllocation, selector: {matchLabels: { yndd.io/nodeName: $nodeInfo.name}}}}    
+  - { $niAllocations: {query: yndd.io/v1alpha1/NIAllocation, selector: {matchLabels: { yndd.io/nodeName: $nodeInfo.name}}}}  
+
+- image: state
+  config: stateInfo
+  input: 
+    - { yndd.io/v1alpha1/Config }
+  output:
+    - yndd.io/v1alpha1/State
+
+services:
+- asInjection
+- ipInjection
+- niAllocation

@@ -1,0 +1,43 @@
+for: 
+  vpc: infra.yndd.io/v1alpha1/Vpc
+
+var:
+  nodes:
+    query: topo.yndd.io/v1alpha1/Node
+    selector:
+      matchLabels:
+        yndd.io/topology: $infra.spec.topology
+  links:
+    query: topo.yndd.io/v1alpha1/Link
+    selector:
+      matchLabels:
+        yndd.io/topology: $infra.spec.topology
+
+resource:
+- image: generateVpcConfig
+  input: 
+    - { $nodes }
+    - { $links }
+  output:
+    - yndd.io/v1alpha1/Config
+- image: injectIPNI
+  for: 
+    range: {gvk: yndd.io/v1alpha1/Config}
+    #iterator_var1: $i
+    iterator_var2: nodeInfo
+  input:
+    - { $nodeInfo }
+    - { $asAllocations: {query: yndd.io/v1alpha1/AsAllocation, selector: {matchLabels: { yndd.io/nodeName: $nodeInfo.name}}}}
+    - { $ipAllocations: {query: yndd.io/v1alpha1/IPAllocation, selector: {matchLabels: { yndd.io/nodeName: $nodeInfo.name}}}}    
+    - { $niAllocations: {query: yndd.io/v1alpha1/NIAllocation, selector: {matchLabels: { yndd.io/nodeName: $nodeInfo.name}}}}  
+- image: state
+  config: stateInfo
+  input: 
+    - { yndd.io/v1alpha1/Config }
+  output:
+    - yndd.io/v1alpha1/State
+
+services:
+- asInjection
+- ipInjection
+- niAllocation
