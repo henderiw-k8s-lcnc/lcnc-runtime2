@@ -1,0 +1,71 @@
+for: 
+  var: infra
+  gvk: infra.yndd.io/v1alpha1/Infrastructure
+own:
+- gvk: x
+watch: 
+- gvk: y
+  image: watchImage
+vars:
+- var: links
+  query: topo.yndd.io/v1alpha1/Link
+  selector:
+    matchLabels:
+      yndd.io/topology: $infra.spec.topology
+      yndd.io/linktype: infra
+- var: nodes
+  query: topo.yndd.io/v1alpha1/Node
+  selector:
+    matchLabels:
+      yndd.io/topology: $infra.spec.topology
+resources:
+  - image: networkInfraAllocator
+    for:
+      range: 
+        var: $links
+      #iterator1: $i
+      iterator2: $link
+    input: 
+    - var: $Link 
+    - { var: $linkEpA, query: $nodes, selector: { name: $link.spec.endpointA } }
+    - { var: $linkEpB, query: $nodes, selector: { name: $link.spec.endpointB } }
+    output: 
+    - gvk: yndd.io/v1alpha1/NodeInfo
+      type: internal
+    #- yndd.io/v1alpha1/IPAllocation: {type: internal} -> implicit, uses conditions
+    #- yndd.io/v1alpha1/ASAllocation: {type: internal} -> implicit, uses conditions
+  - image: infraConfig
+    for: 
+      range: 
+        gvk: yndd.io/v1alpha1/NodeInfo
+      #iterator1: $i
+      iterator2: $nodeInfo
+    input:
+    - var: $nodeInfo
+    - { var: $asAllocations, query: yndd.io/v1alpha1/AsAllocation, selector: {matchLabels: { yndd.io/nodeName: $nodeInfo.name}}}
+    - { var: $ipAllocations, query: yndd.io/v1alpha1/IPAllocation, selector: {matchLabels: { yndd.io/nodeName: $nodeInfo.name}}}    
+    output: 
+    - gvk: yndd.io/v1alpha1/Config
+  - image: state
+    for: 
+      range: {gvk: yndd.io/v1alpha1/NodeInfo}
+      #iterator1: $i
+      iterator2: $nodeInfo
+    config: stateInfo
+    input:
+    - var: $nodeInfo 
+    output: 
+    - gvk: yndd.io/v1alpha1/State
+    
+services:
+- image: asInjection
+- image: ipInjection
+
+# function -> name: infraConfig implements libraries
+      #createInterface: physical (lag, member), loopback/system, irb
+      #createTunnelInterface: vxlan or mple
+      #create SubInterface: loopback/system
+      #create route policy
+      #create network instance
+      #create bgp, group, evpn
+      #create system evpn constructs

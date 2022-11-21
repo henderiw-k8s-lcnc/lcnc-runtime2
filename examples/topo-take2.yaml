@@ -1,0 +1,66 @@
+for: 
+  var: topo
+  gvk: topo.yndd.io/v1alpha1/TopologyDefinition
+vars: 
+  - var: allTemplates # returns a list (includes the name of the template)
+    query: topo.yndd.io/v1alpha1/Templates
+  - var: parentTemplateNames
+    for:
+      range: 
+        var: $infra.spec.properties.templates
+      iterator2: $definitionRule
+    slice: $definitionRule.name
+  - var: parentTemplates  # returns a list (includes the name of the template)
+    for:
+      range: 
+        var: $parentTemplateNames
+      iterator2: $parentTemplateName
+    map:
+      key: $parentTemplateName
+      value: {query: $allTemplates, selector: { name: parentTemplateName}}
+  - var: childTemplates
+    for:
+      range: 
+        var: $parentTemplates
+      iterator2: $parentTemplate
+    map:
+      key: $parentTemplate.metadata.name
+      value: {query: $allTemplates, selector: { name: "parentTemplate.spec.properties.fabric.pod[*].definitionRef"}}
+  - var: discoveryRuleNames
+    for:
+      range: 
+        var: $infra.spec.properties.discoveryRules
+      iterator2: $definitionRule
+    slice: $definitionRule.name
+resources:
+  - image: topology
+    input:
+      - var: $infra # can be implicit
+    output: 
+      - gvk: topo.yndd.io/v1alpha1/Topology
+  - image: topologyBuilderFromTemplate
+    for:
+      range: 
+        var: $parentTemplates
+      iterator1: $parentTemplateName
+      iterator2: $parentTemplate
+    input:
+      - var: $parentTemplate
+      - var: $childTemplates
+        query: $childTemplates
+        selector: { name: $parentTemplateName}
+    output: 
+      - gvk: topo.yndd.io/v1alpha1/Node  # resource defines the output
+      - gvk: topo.yndd.io/v1alpha1/Link  # resource defines the output
+  - image: nodeBuilderFromDiscoveryRule
+    for:
+      range: 
+        var: $discoveryRuleNames
+      iterator_var1: $parentTemplateName
+      iterator_var2: $parentTemplate
+    input:
+      - var: $targets
+        query: $childTemplates
+        selector: { name: $parentTemplateName}
+    output: 
+      - gvk: topo.yndd.io/v1alpha1/Node  # resource defines the output
