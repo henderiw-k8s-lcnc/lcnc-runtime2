@@ -1,65 +1,71 @@
 for: 
-  var: infra
-  gvk: infra.yndd.io/v1alpha1/Infrastructure
+  Infra: {gvr: infra.yndd.io/v1alpha1/infrastructures}
 own:
-- gvk: x
+  Infra: {gvr: infra.yndd.io/v1alpha1/infrastructures}
 watch: 
-- gvk: y
-  image: watchImage
+  Infra: {gvr: infra.yndd.io/v1alpha1/infrastructures, image: watchImage}
 vars:
-- var: links
-  query: topo.yndd.io/v1alpha1/Link
-  selector:
-    matchLabels:
-      yndd.io/topology: $infra.spec.topology
-      yndd.io/linktype: infra
-- var: nodes
-  query: topo.yndd.io/v1alpha1/Node
-  selector:
-    matchLabels:
-      yndd.io/topology: $infra.spec.topology
+  Nodes:
+    query: topo.yndd.io/v1alpha1/nodes
+    selector:
+      matchLabels:
+        yndd.io/topology: $infra.spec.topology
+  Links:
+    query: topo.yndd.io/v1alpha1/links
+    selector:
+      matchLabels:
+        yndd.io/topology: $infra.spec.topology
+        yndd.io/linktype: infra
 resources:
-  - image: networkInfraAllocator
+  NetworkInfraAllocator:
     for:
-      range: 
-        var: $links
-      #iterator1: $i
-      iterator2: $link
-    input: 
-    - var: $Link 
-    - { var: $linkEpA, query: $nodes, selector: { name: $link.spec.endpointA } }
-    - { var: $linkEpB, query: $nodes, selector: { name: $link.spec.endpointB } }
-    output: 
-    - gvk: yndd.io/v1alpha1/NodeInfo
-      type: internal
-    #- yndd.io/v1alpha1/IPAllocation: {type: internal} -> implicit, uses conditions
-    #- yndd.io/v1alpha1/ASAllocation: {type: internal} -> implicit, uses conditions
-  - image: infraConfig
+      range: $Links
+    function:
+      image: networkInfraAllocator
+      vars:
+        linkEpA: {query: $Nodes, selector: {matchLabels: { yndd.io/nodeName: $VALUE.spec.endpointA}}} 
+        linkEpB: {query: $Nodes, selector: {matchLabels: { yndd.io/nodeName: $VALUE.spec.endpointB}}}
+      input: 
+        link: $VALUE
+        linkEpA: $linkEpA
+        linkEpB: $linkEpB
+      output: 
+        NodeInfo: nodeInfo
+        AsAllocations: asAllocations  ## uses conditions
+        NiAllocations: niAllocations ## uses conditions
+        IpAllocations: ipAllocations ## uses conditions
+  GenerateInfraConfig:
     for: 
-      range: 
-        gvk: yndd.io/v1alpha1/NodeInfo
-      #iterator1: $i
-      iterator2: $nodeInfo
-    input:
-    - var: $nodeInfo
-    - { var: $asAllocations, query: yndd.io/v1alpha1/AsAllocation, selector: {matchLabels: { yndd.io/nodeName: $nodeInfo.name}}}
-    - { var: $ipAllocations, query: yndd.io/v1alpha1/IPAllocation, selector: {matchLabels: { yndd.io/nodeName: $nodeInfo.name}}}    
-    output: 
-    - gvk: yndd.io/v1alpha1/Config
-  - image: state
+      range: $NodeInfo
+      #range: yndd.io/v1alpha1/nodeinfos -> both options should be possible
+    function:
+      image: infraConfig
+      vars:
+        asAllicationPerNode: {query: $AsAllocations, selector: {matchLabels: { yndd.io/nodeName: $VALUE.name}}} 
+        ipAllicationPerNode: {query: $IpAllocations, selector: {matchLabels: { yndd.io/nodeName: $VALUE.name}}}
+        niAllicationPerNode: {query: $NiAllocations, selector: {matchLabels: { yndd.io/nodeName: $VALUE.name}}}
+      input:
+        nodeInfo: $VALUE
+        asAllicationPerNode: $asAllicationPerNode
+        ipAllicationPerNode: $ipAllicationPerNode
+        niAllicationPerNode: $niAllicationPerNode  
+      output: 
+        Config: yndd.io/v1alpha1/networkConfigs
+  GenerateState:
     for: 
-      range: {gvk: yndd.io/v1alpha1/NodeInfo}
-      #iterator1: $i
-      iterator2: $nodeInfo
-    config: stateInfo
-    input:
-    - var: $nodeInfo 
-    output: 
-    - gvk: yndd.io/v1alpha1/State
-    
+      #range: yndd.io/v1alpha1/nodeInfos
+      range: $NodeInfo
+    function:
+      image: state
+      config: stateInfo
+      input:
+        config: $VALUE
+      output: 
+        State: yndd.io/v1alpha1/networkStates
 services:
-- image: asInjection
-- image: ipInjection
+  asInjection: { function: {image: asInjection }}
+  ipInjection: { function: {image: ipInjection }}
+  niInjection: { function: {image: niInjection }}
 
 # function -> name: infraConfig implements libraries
       #createInterface: physical (lag, member), loopback/system, irb

@@ -1,53 +1,58 @@
 for: 
-  var: vpc
-  gvk: infra.yndd.io/v1alpha1/Vpc
+  Vpc: {gvr: infra.yndd.io/v1alpha1/vpcs}
 vars:
-  - var: nodes
-    query: topo.yndd.io/v1alpha1/Node
+  Nodes:
+    query: topo.yndd.io/v1alpha1/nodes
     selector:
       matchLabels:
         yndd.io/topology: $infra.spec.topology
-  - var: links
-    query: topo.yndd.io/v1alpha1/Link
+  Links:
+    query: topo.yndd.io/v1alpha1/links
     selector:
       matchLabels:
         yndd.io/topology: $infra.spec.topology
         yndd.io/linktype: not infra
 resources:
-  - image: selectedNodeInterfaces # for bridges and routing tables, irb
-    input: 
-      - var: $nodes
-      - var: $links
-    output:
-      - gvk: yndd.io/v1alpha1/Interfaces
-        type: internal
-      #- yndd.io/v1alpha1/NIAllocation: {type: internal} -> implicit, uses conditions
-      #- yndd.io/v1alpha1/IPAllocation: {type: internal} -> implicit, uses conditions
-  - image: generateConfig
+  SelectNodeInterfaces:
+    function:
+      image: selectedNodeInterfaces # for bridges and routing tables, irb
+      input: #-> map[string (gvk)][]string
+        vpc:  $Vpc
+        nodes: $Nodes
+        links: $Links
+      output:
+        SelectedInterfaces: selectedInterfaces
+        AsAllocations: asAllocations  ## uses conditions
+        NiAllocations: niAllocations ## uses conditions
+        IpAllocations: ipAllocations ## uses conditions
+  GenerateVpcConfig:
     for:
-      range: {gvk: yndd.io/v1alpha1/Interfaces}
-      iterator2: interface
-    input: 
-      - var: $interface
-      - var: $asAllocations
-        query: yndd.io/v1alpha1/AsAllocation
-        selector: {matchLabels: { yndd.io/nodeName: $nodeInfo.name}}
-      - var: $ipAllocations
-        query: yndd.io/v1alpha1/IPAllocation
-        selector: {matchLabels: { yndd.io/nodeName: $nodeInfo.name}}  
-      - var: $niAllocations
-        query: yndd.io/v1alpha1/NIAllocation
-        selector: {matchLabels: { yndd.io/nodeName: $nodeInfo.name}}
-    output:
-      - gvk: yndd.io/v1alpha1/Config
-  - image: state
-    config: stateInfo
-    input: 
-      - gvk: yndd.io/v1alpha1/Config
-    output:
-      - gvk: yndd.io/v1alpha1/State
-
+      range: $SelectedInterfaces
+    function:
+      image: generateVpcConfig
+      vars:
+        asAllicationPerNode: {query: $AsAllocations, selector: {matchLabels: { yndd.io/nodeName: $VALUE.name}}} 
+        ipAllicationPerNode: {query: $IpAllocations, selector: {matchLabels: { yndd.io/nodeName: $VALUE.name}}}
+        niAllicationPerNode: {query: $NiAllocations, selector: {matchLabels: { yndd.io/nodeName: $VALUE.name}}}
+      input: 
+        internalInterface: $VALUE
+        asAllicationPerNode: $asAllicationPerNode
+        ipAllicationPerNode: $ipAllicationPerNode
+        niAllicationPerNode: $niAllicationPerNode
+      output:
+        Configs: yndd.io/v1alpha1/networkconfigs
+  GenerateState:
+    for: 
+      range: $Configs
+      #range: yndd.io/v1alpha1/networkconfigs
+    function:
+      image: state
+      config: stateInfo
+      input: 
+        config: $VALUE
+      output:
+        states: yndd.io/v1alpha1/networkstates
 services:
-  - image: asInjection
-  - image: ipInjection
-  - image: niAllocation
+  asInjection: { function: {image: asInjection }}
+  ipInjection: { function: {image: ipInjection }}
+  niInjection: { function: {image: niInjection }}

@@ -1,4 +1,4 @@
-package lcncsysntax
+package lcncsyntax
 
 import (
 	"os"
@@ -32,17 +32,24 @@ func TestApiParsing(t *testing.T) {
 				if err := yaml.Unmarshal(b, cfg); err != nil {
 					t.Error(err)
 				}
-				t.Logf("\nfor: %s\n", cfg.For.Gvk)
+				extRes, err := cfg.GetExternalResources()
+				if err != nil {
+					t.Error(err)
+				}
+				t.Logf("external resources for: %s\n%v", f.Name(), extRes)
+				/*
+				t.Logf("\nfor: %s\n", cfg.For.Gvr)
 				for _, v := range cfg.Vars {
 					t.Logf("variable: %s, query: %v, for: %v \n", v.VariableName, v.LcncQuery, v.For)
 				}
 				for _, r := range cfg.Resources {
 					output := []string{}
 					for _, o := range r.Output {
-						output = append(output, o.LcncGvk.Gvk)
+						output = append(output, o.LcncGvr.Gvr)
 					}
 					t.Logf("resource image: %v, input: %v, output: %v \n", r.LcncImage.ImageName, r.Input, output)
 				}
+				*/
 			}
 		}
 	}
