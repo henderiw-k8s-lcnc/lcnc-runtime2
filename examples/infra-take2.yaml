@@ -31,13 +31,12 @@ resources:
         linkEpB: $linkEpB
       output: 
         NodeInfo: nodeInfo
-        AsAllocations: asAllocations  ## uses conditions
+        AsAllocations: asAllocations ## uses conditions
         NiAllocations: niAllocations ## uses conditions
         IpAllocations: ipAllocations ## uses conditions
   GenerateInfraConfig:
     for: 
       range: $NodeInfo
-      #range: yndd.io/v1alpha1/nodeinfos -> both options should be possible
     function:
       image: infraConfig
       vars:
@@ -53,7 +52,6 @@ resources:
         Config: yndd.io/v1alpha1/networkConfigs
   GenerateState:
     for: 
-      #range: yndd.io/v1alpha1/nodeInfos
       range: $NodeInfo
     function:
       image: state

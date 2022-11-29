@@ -8,9 +8,10 @@ type LcncConfig struct {
 	// key represents the variable
 	Watch map[string]LcncGvrObject `json:"watch,omitempty" yaml:"watch,omitempty"`
 	// key respresents the variable
-	Vars      map[string]LcncVar      `json:"vars,omitempty" yaml:"vars,omitempty"`
-	Resources map[string]LcncResource `json:"resources,omitempty" yaml:"resources,omitempty"`
-	Services  map[string]LcncFunction `json:"services,omitempty" yaml:"services,omitempty"`
+	Vars      []LcncVarBlock       `json:"vars,omitempty" yaml:"vars,omitempty"`
+	Functions []LcncFunctionsBlock `json:"fucntions,omitempty" yaml:"functions,omitempty"`
+	Services  []LcncFunctionsBlock `json:"services,omitempty" yaml:"services,omitempty"`
+	//Services map[string]LcncFunction `json:"services,omitempty" yaml:"services,omitempty"`
 }
 
 type LcncGvrObject struct {
@@ -18,33 +19,57 @@ type LcncGvrObject struct {
 	LcncImage `json:",inline" yaml:",inline"`
 }
 
+type LcncVarBlock struct {
+	LcncBlock    `json:",inline" yaml:",inline"`
+	LcncVariables map[string]LcncVar `json:",inline" yaml:",inline"`
+}
+
+type LcncBlock struct {
+	For *LcncFor `json:"for,omitempty" yaml:"for,omitempty"`
+	// TODO add IF statement block as standalone and within the if statement
+}
+
+type LcncFor struct {
+	Range *string `json:"range,omitempty" yaml:"range,omitempty"`
+}
+
 type LcncVar struct {
+	Slice *LcncSlice `json:"slice,omitempty" yaml:"slice,omitempty"`
+	Map   *LcncMap   `json:"map,omitempty" yaml:"map,omitempty"`
+}
+
+type LcncSlice struct {
+	LcncValue `json:"value,omitempty" yaml:"value,omitempty"`
+}
+
+type LcncMap struct {
+	Key       *string `json:"key,omitempty" yaml:"key,omitempty"`
+	LcncValue `json:"value,omitempty" yaml:"value,omitempty"`
+}
+
+type LcncValue struct {
 	LcncQuery `json:",inline" yaml:",inline"`
-	For       LcncForLoop `json:"for,omitempty" yaml:"for,omitempty"`
+	String    *string `json:"string,omitempty" yaml:"string,omitempty"`
 }
 
-type LcncResource struct {
-	For      LcncForLoop  `json:"for,omitempty" yaml:"for,omitempty"`
-	Function LcncFunction `json:"function" yaml:"function"`
+type LcncFunctionsBlock struct {
+	LcncBlock    `json:",inline" yaml:",inline"`
+	LcncFunctions map[string]LcncFunction `json:",inline" yaml:",inline"`
 }
-
-/*
-type LcncService struct {
-	LcncImage `json:",inline" yaml:",inline"`
-}
-*/
 
 type LcncFunction struct {
 	LcncImage `json:",inline" yaml:",inline"`
-	Vars      map[string]LcncVar `json:"vars,omitempty" yaml:"vars,omitempty"`
-	Config    string             `json:"config,omitempty" yaml:"config,omitempty"`
-	Input     map[string]string  `json:"input,omitempty" yaml:"input,omitempty"`
+	//Vars      []LcncVarBlock    `json:"vars,omitempty" yaml:"vars,omitempty"`
+	Vars   map[string]LcncVar `json:"vars,omitempty" yaml:"vars,omitempty"`
+	Config string             `json:"config,omitempty" yaml:"config,omitempty"`
+	// input is always a GVK of some sort
+	Input map[string]string `json:"input,omitempty" yaml:"input,omitempty"`
 	// key = variableName, value is gvr format or not -> gvr format is needed for external resources
 	Output map[string]string `json:"output,omitempty" yaml:"output,omitempty"`
 }
 
 type LcncImage struct {
-	ImageName string `json:"image" yaml:"image"`
+	ImageName *string `json:"image" yaml:"image"`
 }
 
 type LcncQuery struct {
@@ -53,58 +78,14 @@ type LcncQuery struct {
 }
 
 type LcncSelector struct {
-	Name        *string            `json:"name,omitempty" yaml:"name,omitempty"`
+	Name        *string           `json:"name,omitempty" yaml:"name,omitempty"`
 	MatchLabels map[string]string `json:"matchLabels,omitempty" yaml:"matchLabels,omitempty"`
 }
 
+/*
 type LcncForLoop struct {
 	Range *string  `json:"range,omitempty" yaml:"range,omitempty"`
 	Slice *string  `json:"slice,omitempty" yaml:"string,omitempty"`
 	Map   *LcncMap `json:"map,omitempty" yaml:"map,omitempty"`
 }
-
-type LcncMap struct {
-	Key   string    `json:"key,omitempty" yaml:"key,omitempty"`
-	Value LcncQuery `json:"value,omitempty" yaml:"value,omitempty"`
-}
-
-/*
-type LcncInput struct {
-	LcncVariableName `json:",inline" yaml:",inline"`
-	LcncQuery        `json:",inline" yaml:",inline"`
-}
-*/
-
-/*
-type LcncOutput struct {
-	LcncGvr `json:",inline" yaml:",inline"`
-	Type    string
-}
-*/
-
-/*
-type LcncForRange struct {
-	Gvk     string `json:"gvk,omitempty" yaml:"gvk,omitempty"`
-	Variale string `json:"var,omitempty" yaml:"var,omitempty"`
-}
-*/
-
-/*
-	type LcncGvr struct {
-		Gvr string `json:"gvr" yaml:"gvr"`
-	}
-
-	type LcncFor struct {
-		LcncVariableName `json:",inline" yaml:",inline"`
-		LcncGvr          `json:",inline" yaml:",inline"`
-	}
-
-	type LcncOwn struct {
-		LcncGvr `json:",inline" yaml:",inline"`
-	}
-
-	type LcncWatch struct {
-		LcncGvr   `json:",inline" yaml:",inline"`
-		LcncImage `json:",inline" yaml:",inline"`
-	}
 */

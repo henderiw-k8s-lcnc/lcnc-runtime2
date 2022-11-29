@@ -41,7 +41,7 @@ resources:
       vars: 
         childTemplates: {query: $ChildTemplates, selector: { name: $KEY}}
       input:
-        parentTemplate: $ParentTemplate
+        parentTemplate: $VALUE
         childTemplates: $childTemplates
       output: 
         TemplateNodes: topo.yndd.io/v1alpha1/nodes  

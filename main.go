@@ -5,7 +5,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/henderiw-k8s-lcnc/lcnc-runtime2/pkg/lcnc"
 	"github.com/henderiw-k8s-lcnc/lcnc-runtime2/pkg/lcncsyntax"
 	"github.com/yndd/ndd-runtime/pkg/logging"
 	"gopkg.in/yaml.v2"
@@ -29,7 +28,7 @@ func main() {
 		os.Exit(1)
 	}
 	for _, f := range files {
-		if strings.HasSuffix(f.Name(), ".yaml") {
+		if strings.HasSuffix(f.Name(), ".yaml") && strings.Contains(f.Name(), "3") {
 
 			logger.Debug("file", "filename", f.Name())
 			b, err := os.ReadFile(filepath.Join(dir, f.Name()))
@@ -37,6 +36,7 @@ func main() {
 				logger.Debug("cannot read file", "error", err)
 				os.Exit(1)
 			}
+			logger.Debug("filename", "name", f.Name())
 
 			lcncCfg := &lcncsyntax.LcncConfig{}
 			if err := yaml.Unmarshal(b, lcncCfg); err != nil {
@@ -44,23 +44,35 @@ func main() {
 				os.Exit(1)
 			}
 
-			l, err := lcnc.New(lcncCfg)
-			if err != nil {
-				logger.Debug("cannot create lcnc", "error", err)
+			p, result := lcncsyntax.NewParser(lcncCfg)
+			if len(result) > 0 {
+				logger.Debug("config syntax validation failed", "result", result)
 				os.Exit(1)
 			}
 
-			extRes, err := l.GetExternalResources()
-			if err != nil {
-				logger.Debug("cannot get external resources", "error", err)
+			extRes, result := p.GetExternalResources()
+			if len(result) != 0 {
+				logger.Debug("failed get external resources", "result", result)
 				os.Exit(1)
 			}
 			logger.Debug("external resources", "for", f.Name(), "external resoruces", extRes)
 
-			if err := l.Transform(); err != nil {
-				logger.Debug("cannot transformm resources", "error", err)
+			d, root, result := p.Parse()
+			if len(result) != 0 {
+				logger.Debug("cannot parse resources", "result", result)
 				os.Exit(1)
-			}	
+			}
+
+			d.Walk(root)
+
+			/*
+				w := walker.New(d)
+				if err := w.Walk(); err != nil {
+					logger.Debug("walk failed", "error", err)
+					os.Exit(1)
+				}
+				w.GetResult()
+			*/
 		}
 	}
 

@@ -21,7 +21,7 @@ func TestApiParsing(t *testing.T) {
 			t.Error(err)
 		}
 		for _, f := range files {
-			if strings.HasSuffix(f.Name(), ".yaml") {
+			if strings.HasSuffix(f.Name(), ".yaml") && strings.Contains(f.Name(), "3") {
 				t.Log(f.Name())
 				b, err := os.ReadFile(filepath.Join(test.src, f.Name()))
 				if err != nil {
@@ -32,11 +32,11 @@ func TestApiParsing(t *testing.T) {
 				if err := yaml.Unmarshal(b, cfg); err != nil {
 					t.Error(err)
 				}
-				extRes, err := cfg.GetExternalResources()
-				if err != nil {
-					t.Error(err)
-				}
-				t.Logf("external resources for: %s\n%v", f.Name(), extRes)
+				//extRes, err := cfg.GetExternalResources()
+				//if err != nil {
+				//	t.Error(err)
+				//}
+				//t.Logf("external resources for: %s\n%v", f.Name(), extRes)
 				/*
 				t.Logf("\nfor: %s\n", cfg.For.Gvr)
 				for _, v := range cfg.Vars {
