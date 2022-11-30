@@ -49,7 +49,7 @@ func (r *lcncparser) Parse() (dag.DAG, string, []Result) {
 	if len(result) != 0 {
 		return nil, "", result
 	}
-	// dependencies
+	newd := d.TransitiveReduction()
 	// transitive reduction
-	return d, r.rootVertexName, nil
+	return newd, r.rootVertexName, nil
 }

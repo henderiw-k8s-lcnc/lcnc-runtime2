@@ -192,7 +192,9 @@ func (d *dag) TransitiveReduction() DAG {
 
 	for vertexName := range d.GetVertices() {
 		fmt.Printf("############## ORIGIN VERTEX: %s ###############\n", vertexName)
-		d.initVertexDepth(vertexName, 0)
+		// we initialize the vertexdeptch map as 1 since 0 is used for uninitialized verteces
+		// 0 is also used to avoid adding the vertex back in the graph
+		d.initVertexDepth(vertexName, 1)
 		d.transitiveReduction(vertexName, newdag)
 	}
 	return newdag
@@ -202,7 +204,7 @@ func (d *dag) TransitiveReduction() DAG {
 func (d *dag) initVertexDepth(from string, depth int) {
 	//d.mvd.Lock()
 	//defer d.mvd.Unlock()
-	if depth == 0 {
+	if depth == 1 {
 		d.vertexDepth = map[string]int{}
 	}
 	d.vertexDepth[from] = depth
@@ -238,9 +240,12 @@ func (d *dag) transitiveReduction(from string, newdag DAG) {
 	}
 	fmt.Printf("from: %s, bestVertexDepth: %v\n", from, bestVertexDepth)
 	for _, upVertex := range d.GetUpVertexes(from) {
+		// if bestVertexDepth == 0 it means we refer to an uninitialized vertex and we dont need
+		// to process this.
 		if bestVertexDepth != 0 {
 			if d.vertexDepth[upVertex] == bestVertexDepth {
 				newdag.Connect(upVertex, from)
+				fmt.Printf("connect: from %s, to %s\n", upVertex, from)
 				//newdag.AddUpEdge(from, upVertex)
 			} else {
 				fmt.Printf("transitive reduction: from %s, to %s\n", upVertex, from)
@@ -256,9 +261,11 @@ func (d *dag) transitiveReduction(from string, newdag DAG) {
 	wg := new(sync.WaitGroup)
 	wg.Add(len(downEdges))
 	for _, downEdge := range downEdges {
-		if from == "root" {
-			newdag.AddDownEdge("root", downEdge)
-		}
+		/*
+			if from == "root" {
+				newdag.AddDownEdge("root", downEdge)
+			}
+		*/
 		downEdge := downEdge
 		go func() {
 			defer wg.Done()

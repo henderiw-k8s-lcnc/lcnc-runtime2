@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/henderiw-k8s-lcnc/lcnc-runtime2/pkg/lcncsyntax"
+	"github.com/henderiw-k8s-lcnc/lcnc-runtime2/pkg/walker"
 	"github.com/yndd/ndd-runtime/pkg/logging"
 	"gopkg.in/yaml.v2"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -65,14 +66,13 @@ func main() {
 
 			d.Walk(root)
 
-			/*
-				w := walker.New(d)
-				if err := w.Walk(); err != nil {
-					logger.Debug("walk failed", "error", err)
-					os.Exit(1)
-				}
-				w.GetResult()
-			*/
+			w := walker.New(d, root)
+			if err := w.Walk(); err != nil {
+				logger.Debug("walk failed", "error", err)
+				os.Exit(1)
+			}
+			w.GetResult()
+
 		}
 	}
 
