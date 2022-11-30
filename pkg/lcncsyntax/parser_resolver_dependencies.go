@@ -58,7 +58,7 @@ func (r *rs) addDependenciesLcncFunctionsPostHookFn(v []LcncFunctionsBlock) {
 			if vv.For != nil && vv.For.Range != nil {
 				forblock = true
 				if err := r.connectEdges(&OriginContext{
-					Origin:   OriginVariable,
+					Origin:   OriginFunction,
 					ForBlock: forblock,
 				}, vertexName, *vv.For.Range); err != nil {
 					r.recordResult(Result{
@@ -168,9 +168,12 @@ func (r *rs) connectEdges(o *OriginContext, vertexName, s string) error {
 		}
 		// a fucntion can be dependent on another fn based on the output
 		if o.Origin == OriginFunction && r.HasOutputMapping(value.Variable[0]) {
+			//fmt.Printf("connect with output %s -> %s, originContext: %v\n", r.GetOutputMapping(value.Variable[0]), vertexName, *o)
+			//r.PrintOutputMappings() 
 			r.d.Connect(r.GetOutputMapping(value.Variable[0]), vertexName)
 			break
 		}
+		//fmt.Printf("connect %s -> %s, originContext: %v\n", value.Variable[0], vertexName, *o)
 		r.d.Connect(value.Variable[0], vertexName)
 	case KeyVariableReferenceKind:
 	default:

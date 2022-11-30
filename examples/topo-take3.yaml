@@ -17,7 +17,7 @@ vars:
     parentTemplates:
       map:
         key: $VALUE
-        value: {query: $allTemplates, selector: { name: parentTemplateName}}
+        value: {query: $allTemplates, selector: { name: $VALUE}}
   - for:
       range: $parentTemplates
     childTemplates:
@@ -42,12 +42,12 @@ functions:
     createFabric:
       image: topologyBuilderFromTemplate
       vars: 
-        childTemplates: 
+        localChildTemplates: 
           slice: 
             value: {query: $childTemplates, selector: { name: $KEY}}
       input:
         parentTemplate: $VALUE
-        childTemplates: $childTemplates
+        localChildTemplates: $localChildTemplates
       output: 
         TemplateNodes: topo.yndd.io/v1alpha1/nodes  
         Templatelinks: topo.yndd.io/v1alpha1/links

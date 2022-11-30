@@ -2,6 +2,7 @@ package lcncsyntax
 
 import (
 	"sync"
+	"time"
 
 	"github.com/henderiw-k8s-lcnc/lcnc-runtime2/pkg/dag"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -49,7 +50,14 @@ func (r *lcncparser) Parse() (dag.DAG, string, []Result) {
 	if len(result) != 0 {
 		return nil, "", result
 	}
-	newd := d.TransitiveReduction()
+	//d.Walk(r.rootVertexName, dag.WalkConfig{})
+	//d.GetWalkResult()
+	d.GetDependencyMap(r.rootVertexName)
+	d.TransitiveReduction()
+	time.Sleep(100 * time.Millisecond)
+	d.GetDependencyMap(r.rootVertexName)
+	//d.Walk(r.rootVertexName, dag.WalkConfig{Dep: true})
+	//d.GetWalkResult()
 	// transitive reduction
-	return newd, r.rootVertexName, nil
+	return d, r.rootVertexName, nil
 }

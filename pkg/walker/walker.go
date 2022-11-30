@@ -69,8 +69,8 @@ func (r *walker) initWalkerContext() {
 
 }
 
-func (r *walker) dependenciesFinished(dep []string) bool {
-	for _, vertexName := range dep {
+func (r *walker) dependenciesFinished(dep map[string]chan bool) bool {
+	for vertexName := range dep {
 		if !r.getWalkerContext(vertexName).isFinished() {
 			return false
 		}
@@ -94,14 +94,14 @@ func (r *walker) Walk() error {
 
 func (r *walker) walk(from string) error {
 	wCtx := r.getWalkerContext(from)
-	// avoid scheduling a vertex that is already running
+	// avoid scheduling a vertex that is already visted
 	if !wCtx.isScheduled() {
 		wCtx.scheduled = time.Now()
 		r.wg.Add(1)
 		// execute the vertex function
 		fmt.Printf("%s scheduled\n", wCtx.vertexName)
 		go func() {
-			if !r.dependenciesFinished(wCtx.deps) {
+			if !r.dependenciesFinished(wCtx.depChs) {
 				fmt.Printf("%s not finished\n", from)
 			}
 			if !wCtx.waitDependencies() {

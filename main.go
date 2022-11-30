@@ -5,8 +5,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/henderiw-k8s-lcnc/lcnc-runtime2/pkg/dag"
 	"github.com/henderiw-k8s-lcnc/lcnc-runtime2/pkg/lcncsyntax"
-	"github.com/henderiw-k8s-lcnc/lcnc-runtime2/pkg/walker"
 	"github.com/yndd/ndd-runtime/pkg/logging"
 	"gopkg.in/yaml.v2"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -64,14 +64,18 @@ func main() {
 				os.Exit(1)
 			}
 
-			d.Walk(root)
+			d.Walk(root, dag.WalkConfig{Dep: true})
+			d.GetWalkResult()
+			d.GetDependencyMap(root)
 
-			w := walker.New(d, root)
-			if err := w.Walk(); err != nil {
-				logger.Debug("walk failed", "error", err)
-				os.Exit(1)
-			}
-			w.GetResult()
+			/*
+				w := walker.New(d, root)
+				if err := w.Walk(); err != nil {
+					logger.Debug("walk failed", "error", err)
+					os.Exit(1)
+				}
+				w.GetResult()
+			*/
 
 		}
 	}

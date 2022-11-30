@@ -1,22 +1,22 @@
 for: 
-  Infra: {gvr: infra.yndd.io/v1alpha1/infrastructures}
+  infra: {gvr: infra.yndd.io/v1alpha1/infrastructures}
 own:
-  Infra: {gvr: infra.yndd.io/v1alpha1/infrastructures}
+  infra: {gvr: infra.yndd.io/v1alpha1/infrastructures}
 watch: 
-  Infra: {gvr: infra.yndd.io/v1alpha1/infrastructures, image: watchImage}
+  infra: {gvr: infra.yndd.io/v1alpha1/infrastructures, image: watchImage}
 vars:
   - nodes:
       slice:
         value:
           query: topo.yndd.io/v1alpha1/nodes
-          selector: {matchLabels: {yndd.io/topology: $vpc.spec.topology}}
+          selector: {matchLabels: {yndd.io/topology: $infra.spec.topology}}
   - links:
       slice:
         value:
           query: topo.yndd.io/v1alpha1/Link
           selector: 
             matchLabels: 
-              yndd.io/topology: $vpc.spec.topology
+              yndd.io/topology: $infra.spec.topology
               yndd.io/linktype: not infra
 functions:
   - for:
@@ -35,24 +35,24 @@ functions:
         linkEpA: $linkEpA
         linkEpB: $linkEpB
       output: 
-        NodeInfo: nodeInfo
-        AsAllocations: asAllocations 
-        NiAllocations: niAllocations 
-        IpAllocations: ipAllocations 
+        nodeInfo: nodeInfo
+        asAllocations: asAllocations 
+        niAllocations: niAllocations 
+        ipAllocations: ipAllocations 
   - for:
-      range: $NodeInfo
+      range: $nodeInfo
     infraConfig:
       image: infraConfig
       vars:
         asAllicationPerNode:
           slice:
-            value: {query: $AsAllocations, selector: {matchLabels: { yndd.io/nodeName: $VALUE.name}}} 
+            value: {query: $asAllocations, selector: {matchLabels: { yndd.io/nodeName: $VALUE.name}}} 
         ipAllicationPerNode:
           slice:
-            value: {query: $IpAllocations, selector: {matchLabels: { yndd.io/nodeName: $VALUE.name}}}
+            value: {query: $ipAllocations, selector: {matchLabels: { yndd.io/nodeName: $VALUE.name}}}
         niAllicationPerNode:
           slice:
-            value: {query: $NiAllocations, selector: {matchLabels: { yndd.io/nodeName: $VALUE.name}}}
+            value: {query: $niAllocations, selector: {matchLabels: { yndd.io/nodeName: $VALUE.name}}}
       input:
         nodeInfo: $VALUE
         asAllicationPerNode: $asAllicationPerNode
@@ -66,7 +66,7 @@ functions:
       input:
         nodeInfo: $VALUE
       output: 
-        State: yndd.io/v1alpha1/networkStates
+        state: yndd.io/v1alpha1/networkStates
 services:
   - asInjection: { image: asInjection }
     ipInjection: { image: ipInjection }
