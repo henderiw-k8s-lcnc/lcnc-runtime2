@@ -5,12 +5,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/henderiw-k8s-lcnc/lcnc-runtime2/pkg/dag"
 	"github.com/henderiw-k8s-lcnc/lcnc-runtime2/pkg/lcncsyntax"
 	"github.com/yndd/ndd-runtime/pkg/logging"
 	"gopkg.in/yaml.v2"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 )
@@ -64,7 +61,7 @@ func main() {
 				os.Exit(1)
 			}
 
-			d.Walk(root, dag.WalkConfig{Dep: true})
+			d.Walk(root)
 			d.GetWalkResult()
 			d.GetDependencyMap(root)
 
@@ -138,6 +135,7 @@ func main() {
 
 }
 
+/*
 func getUnstructuredObj(gvk schema.GroupVersionKind) *unstructured.UnstructuredList {
 	var u unstructured.UnstructuredList
 	u.SetAPIVersion(gvk.GroupVersion().String())
@@ -145,3 +143,4 @@ func getUnstructuredObj(gvk schema.GroupVersionKind) *unstructured.UnstructuredL
 	uCopy := u.DeepCopy()
 	return uCopy
 }
+*/
