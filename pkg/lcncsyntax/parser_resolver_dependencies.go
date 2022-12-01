@@ -177,7 +177,7 @@ func (r *rs) connectEdges(o *OriginContext, vertexName, s string) error {
 		r.d.Connect(value.Variable[0], vertexName)
 	case KeyVariableReferenceKind:
 	default:
-		return fmt.Errorf("cannot add edge: from %s, to: %s\n", value.Variable[0], vertexName)
+		return fmt.Errorf("cannot add edge: from %s, to: %s", value.Variable[0], vertexName)
 	}
 	return nil
 }

@@ -14,30 +14,20 @@ type WalkConfig struct {
 }
 
 func (r *dag) TransitiveReduction() {
-	// initialize a new dag
-	//newdag := NewDAG()
-	//for vertexName, v := range d.GetVertices() {
-	//	newdag.AddVertex(vertexName, v)
-	//}
-
 	for vertexName := range r.GetVertices() {
 		fmt.Printf("##### TRANSIT REDUCTION VERTEX START: %s ###############\n", vertexName)
 		// we initialize the vertexdeptch map as 1 since 0 is used for uninitialized verteces
 		// 0 is also used to avoid adding the vertex back in the graph
-
-		// initVertexeDepthMap
-		//d.wg = new(sync.WaitGroup)
-		wc := WalkConfig{
+		// walk used to intialize the vertex depth map
+		r.trwalk(vertexName, true, 1, WalkConfig{
 			WalkInitFn:  r.initVertexDepthMap,
 			WalkEntryFn: r.addVertexDepth,
-		}
-		r.trwalk(vertexName, true, 1, wc)
-		//d.transitiveReduction(vertexName, true)
-		//d.wg = new(sync.WaitGroup)
-		wc = WalkConfig{
+		})
+
+		// walk to execute the transit reduction
+		r.trwalk(vertexName, true, 1, WalkConfig{
 			WalkEntryFn: r.processTransitiveReducation,
-		}
-		r.trwalk(vertexName, true, 1, wc)
+		})
 		fmt.Printf("##### TRANSIT REDUCTION VERTEX ENDED: %s ###############\n", vertexName)
 	}
 }
@@ -65,9 +55,9 @@ func (r *dag) trwalk(from string, init bool, depth int, wc WalkConfig) {
 }
 
 func (r *dag) processTransitiveReducation(from string, depth int) {
-	fmt.Printf("from: %s, upVerteces: %v\n", from, r.GetUpVertexes(from))
+	//fmt.Printf("from: %s, upVerteces: %v\n", from, r.GetUpVertexes(from))
 	bestVertexDepth := r.getbestVertexDepth(from)
-	fmt.Printf("from: %s, bestVertexDepth: %v\n", from, bestVertexDepth)
+	//fmt.Printf("from: %s, bestVertexDepth: %v\n", from, bestVertexDepth)
 	for _, upVertex := range r.GetUpVertexes(from) {
 		// if bestVertexDepth == 0 it means we refer to an uninitialized vertex and we dont need
 		// to process this.
@@ -81,77 +71,6 @@ func (r *dag) processTransitiveReducation(from string, depth int) {
 		}
 	}
 }
-
-/*
-func (d *dag) initVertexDepth(from string, init bool, depth int) {
-	if init {
-		depth = 1
-		d.wg = new(sync.WaitGroup)
-		d.initVertexDepthMap()
-	}
-	d.addVertexDepth(from, depth)
-	// increase the depth of the dag
-
-	fmt.Printf("initvertexDepth %s, downvertices: %v depth: %d\n", from, d.GetDownVertexes(from), depth)
-	depth++
-	downEdges := d.GetDownVertexes(from)
-	if len(downEdges) == 0 {
-		return
-	}
-
-	// continue walk the dag
-	for _, downEdge := range downEdges {
-		d.wg.Add(1)
-		downEdge := downEdge
-		go func() {
-			defer d.wg.Done()
-			d.initVertexDepth(downEdge, false, depth)
-		}()
-	}
-	d.wg.Wait()
-}
-*/
-
-/*
-func (d *dag) transitiveReduction(from string, init bool) {
-	fmt.Printf("from: %s, upVerteces: %v\n", from, d.GetUpVertexes(from))
-	bestVertexDepth := d.getbestVertexDepth(from)
-	fmt.Printf("from: %s, bestVertexDepth: %v\n", from, bestVertexDepth)
-	for _, upVertex := range d.GetUpVertexes(from) {
-		// if bestVertexDepth == 0 it means we refer to an uninitialized vertex and we dont need
-		// to process this.
-		if bestVertexDepth != 0 {
-			if d.getVertexDepth(upVertex) != bestVertexDepth {
-				d.Disconnect(upVertex, from)
-			}
-
-			//	if d.vertexDepth[upVertex] == bestVertexDepth {
-			//		newdag.Connect(upVertex, from)
-			//		fmt.Printf("connect: from %s, to %s\n", upVertex, from)
-			//		//newdag.AddUpEdge(from, upVertex)
-			//	} else {
-			//		fmt.Printf("transitive reduction: from %s, to %s\n", upVertex, from)
-			//	}
-		}
-	}
-
-	// this retuns to the main loop
-	downEdges := d.GetDownVertexes(from)
-	if len(downEdges) == 0 {
-		return
-	}
-
-	for _, downEdge := range downEdges {
-		d.wg.Add(1)
-		downEdge := downEdge
-		go func() {
-			defer d.wg.Done()
-			d.transitiveReduction(downEdge, false)
-		}()
-	}
-	d.wg.Wait()
-}
-*/
 
 func (r *dag) initVertexDepthMap() {
 	r.mvd.Lock()
@@ -171,7 +90,6 @@ func (r *dag) getVertexDepth(n string) int {
 func (r *dag) addVertexDepth(n string, depth int) {
 	r.mvd.Lock()
 	defer r.mvd.Unlock()
-	fmt.Printf("%s vertex depth: %d\n", n, depth)
 	r.vertexDepth[n] = depth
 }
 

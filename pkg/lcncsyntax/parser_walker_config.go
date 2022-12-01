@@ -23,7 +23,7 @@ type lcncFunctionsPostHookFn func(v []LcncFunctionsBlock)
 type lcncFunctionFn func(o Origin, block bool, idx int, vertexName string, v LcncFunction)
 
 type lcncServicesPreHookFn func(v []LcncFunctionsBlock)
-type lcncServicesPostHookFn func(v []LcncFunctionsBlock)
+//type lcncServicesPostHookFn func(v []LcncFunctionsBlock)
 
 // lcncServiceFn processes the service in the services section
 type lcncServiceFn func(o Origin, block bool, idx int, vertexName string, v LcncFunction)

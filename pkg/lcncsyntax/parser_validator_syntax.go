@@ -271,5 +271,4 @@ func (r *vs) validateContext(o *OriginContext, s string) {
 		})
 		return
 	}
-	return
 }

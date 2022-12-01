@@ -61,18 +61,10 @@ func main() {
 				os.Exit(1)
 			}
 
+			d.GetDependencyMap(root)
 			d.Walk(root)
 			d.GetWalkResult()
-			d.GetDependencyMap(root)
-
-			/*
-				w := walker.New(d, root)
-				if err := w.Walk(); err != nil {
-					logger.Debug("walk failed", "error", err)
-					os.Exit(1)
-				}
-				w.GetResult()
-			*/
+			
 
 		}
 	}

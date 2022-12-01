@@ -278,7 +278,6 @@ func (r *rs) isResolved(o *OriginContext, s string) bool {
 		// resolution is global, so the only resolution we can validate is if the resource exists
 		// on the api server
 		resolved = true
-		break
 	case ChildVariableReferenceKind, RootVariableReferenceKind:
 		// input of a function can resolve to a local variable
 		// if so we should be ok and dont have to add an edge since the variable has already been

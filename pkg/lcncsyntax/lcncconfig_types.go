@@ -81,11 +81,3 @@ type LcncSelector struct {
 	Name        *string           `json:"name,omitempty" yaml:"name,omitempty"`
 	MatchLabels map[string]string `json:"matchLabels,omitempty" yaml:"matchLabels,omitempty"`
 }
-
-/*
-type LcncForLoop struct {
-	Range *string  `json:"range,omitempty" yaml:"range,omitempty"`
-	Slice *string  `json:"slice,omitempty" yaml:"string,omitempty"`
-	Map   *LcncMap `json:"map,omitempty" yaml:"map,omitempty"`
-}
-*/

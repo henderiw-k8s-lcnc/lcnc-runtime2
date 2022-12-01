@@ -1,9 +1,6 @@
 package lcncsyntax
 
 import (
-	"sync"
-	"time"
-
 	"github.com/henderiw-k8s-lcnc/lcnc-runtime2/pkg/dag"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
@@ -17,7 +14,7 @@ func NewParser(cfg *LcncConfig) (Parser, []Result) {
 	p := &lcncparser{
 		lcncCfg: cfg,
 		//d:       dag.NewDAG(),
-		output: map[string]string{},
+		//output: map[string]string{},
 	}
 	// add the callback function to record validation results results
 	result := p.ValidateSyntax()
@@ -30,34 +27,22 @@ type lcncparser struct {
 	lcncCfg *LcncConfig
 	//d              dag.DAG
 	rootVertexName string
-	// localVariable is used to store local variables of a function
-	// key is the local variable
-	ml            sync.RWMutex
-	localVariable map[string]interface{}
-	// output is used to store output to function mapping for
-	// lookup resolution
-	// key is the outputKey
-	mo     sync.RWMutex
-	output map[string]string
-
-	syntaxValidationResult []Result
 }
 
 func (r *lcncparser) Parse() (dag.DAG, string, []Result) {
-	// validate
+	// validate the config when creating the dag
 	d := dag.NewDAG()
+	// resolves the dependencies in the dag
+	// step1. check if all dependencies resolve
+	// step2. add the dependencies in the dag
 	result := r.Resolve(d)
 	if len(result) != 0 {
 		return nil, "", result
 	}
-	//d.Walk(r.rootVertexName, dag.WalkConfig{})
-	//d.GetWalkResult()
-	d.GetDependencyMap(r.rootVertexName)
+	//d.GetDependencyMap(r.rootVertexName)
+	// optimizes the dependncy graph based on transit reduction
+	// techniques
 	d.TransitiveReduction()
-	time.Sleep(100 * time.Millisecond)
-	d.GetDependencyMap(r.rootVertexName)
-	//d.Walk(r.rootVertexName, dag.WalkConfig{Dep: true})
-	//d.GetWalkResult()
-	// transitive reduction
+	//d.GetDependencyMap(r.rootVertexName)
 	return d, r.rootVertexName, nil
 }

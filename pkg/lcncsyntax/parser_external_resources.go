@@ -61,7 +61,7 @@ func (r *er) addResource(er schema.GroupVersionResource) {
 	}
 }
 
-func (r *er) validateLcncHookNopFn(o Origin, v map[string]LcncGvrObject) {}
+//func (r *er) validateLcncHookNopFn(o Origin, v map[string]LcncGvrObject) {}
 
 func (r *er) validateLcncGvrObjectFn(o Origin, idx int, n string, v LcncGvrObject) {
 	gvr, err := GetGVR(v.Gvr)
@@ -139,4 +139,3 @@ func (r *er) validateFunctionFn(o Origin, block bool, idx int, vertexName string
 	}
 }
 
-func (r *er) validateServiceNopFn(o Origin, block bool, idx int, vertexName string, v LcncFunction) {}

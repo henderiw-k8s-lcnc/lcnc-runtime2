@@ -16,8 +16,8 @@ type DAG interface {
 	GetDownVertexes(from string) []string
 	GetUpVertexes(from string) []string
 
-	GetDependencyMap(vertexName string)
-	Walk(vertexName string)
+	GetDependencyMap(from string)
+	Walk(from string)
 	GetWalkResult()
 	TransitiveReduction()
 }
@@ -42,10 +42,9 @@ type dag struct {
 	mvd         sync.RWMutex
 	vertexDepth map[string]int
 	// used for the walker
-	//wg       *sync.WaitGroup
 	cancelCh chan struct{}
 	mw       sync.RWMutex
-	walkMap  map[string]*vertexcontext
+	walkMap  map[string]*vertexContext
 	//mfd       sync.RWMutex
 	fnDoneMap map[string]chan bool
 	mr        sync.RWMutex
@@ -62,77 +61,77 @@ func NewDAG() DAG {
 	}
 }
 
-func (d *dag) AddVertex(s string, v interface{}) error {
-	d.mv.Lock()
-	defer d.mv.Unlock()
+func (r *dag) AddVertex(s string, v interface{}) error {
+	r.mv.Lock()
+	defer r.mv.Unlock()
 
 	// validate duplicate entry
-	if _, ok := d.vertices[s]; ok {
+	if _, ok := r.vertices[s]; ok {
 		return fmt.Errorf("duplicate vertex entry: %s", s)
 	}
-	d.vertices[s] = v
+	r.vertices[s] = v
 	return nil
 }
 
-func (d *dag) GetVertices() map[string]interface{} {
-	d.mv.RLock()
-	defer d.mv.RUnlock()
-	return d.vertices
+func (r *dag) GetVertices() map[string]interface{} {
+	r.mv.RLock()
+	defer r.mv.RUnlock()
+	return r.vertices
 }
 
-func (d *dag) GetVertex(s string) bool {
-	d.mv.RLock()
-	defer d.mv.RUnlock()
-	_, ok := d.vertices[s]
+func (r *dag) GetVertex(s string) bool {
+	r.mv.RLock()
+	defer r.mv.RUnlock()
+	_, ok := r.vertices[s]
 	return ok
 }
 
-func (d *dag) Connect(from, to string) {
-	d.AddDownEdge(from, to)
-	d.AddUpEdge(to, from)
+func (r *dag) Connect(from, to string) {
+	r.AddDownEdge(from, to)
+	r.AddUpEdge(to, from)
 }
 
-func (d *dag) Disconnect(from, to string) {
-	d.DeleteDownEdge(from, to)
-	d.DeleteUpEdge(to, from)
+func (r *dag) Disconnect(from, to string) {
+	r.DeleteDownEdge(from, to)
+	r.DeleteUpEdge(to, from)
 }
 
-func (d *dag) AddDownEdge(from, to string) {
-	d.mde.Lock()
-	defer d.mde.Unlock()
+func (r *dag) AddDownEdge(from, to string) {
+	r.mde.Lock()
+	defer r.mde.Unlock()
 
 	//fmt.Printf("addDownEdge: from: %s, to: %s\n", from, to)
 
 	// initialize the from entry if it does not exist
-	if _, ok := d.downEdges[from]; !ok {
-		d.downEdges[from] = make(map[string]struct{})
+	if _, ok := r.downEdges[from]; !ok {
+		r.downEdges[from] = make(map[string]struct{})
 	}
-	if _, ok := d.downEdges[from][to]; ok {
+	if _, ok := r.downEdges[from][to]; ok {
 		//  down edge entry already exists
 		return
 	}
 	// add entry
-	d.downEdges[from][to] = struct{}{}
+	r.downEdges[from][to] = struct{}{}
 }
 
-func (d *dag) DeleteDownEdge(from, to string) {
-	d.mde.Lock()
-	defer d.mde.Unlock()
+func (r *dag) DeleteDownEdge(from, to string) {
+	r.mde.Lock()
+	defer r.mde.Unlock()
 
 	//fmt.Printf("deleteDownEdge: from: %s, to: %s\n", from, to)
-	if de, ok := d.downEdges[from]; ok {
-		if _, ok := d.downEdges[from][to]; ok {
+	if de, ok := r.downEdges[from]; ok {
+		if _, ok := r.downEdges[from][to]; ok {
 			delete(de, to)
 		}
 	}
 }
 
-func (d *dag) GetDownVertexes(from string) []string {
-	d.mde.RLock()
-	defer d.mde.RUnlock()
+func (r *dag) GetDownVertexes(from string) []string {
+	r.mde.RLock()
+	defer r.mde.RUnlock()
 
 	edges := make([]string, 0)
-	if fromVertex, ok := d.downEdges[from]; ok {
+	if fromVertex, ok := r.downEdges[from]; ok {
 		for to := range fromVertex {
 			edges = append(edges, to)
 		}
@@ -140,42 +139,42 @@ func (d *dag) GetDownVertexes(from string) []string {
 	return edges
 }
 
-func (d *dag) AddUpEdge(from, to string) {
-	d.mue.Lock()
-	defer d.mue.Unlock()
+func (r *dag) AddUpEdge(from, to string) {
+	r.mue.Lock()
+	defer r.mue.Unlock()
 
 	//fmt.Printf("addUpEdge: from: %s, to: %s\n", from, to)
 
 	// initialize the from entry if it does not exist
-	if _, ok := d.upEdges[from]; !ok {
-		d.upEdges[from] = make(map[string]struct{})
+	if _, ok := r.upEdges[from]; !ok {
+		r.upEdges[from] = make(map[string]struct{})
 	}
-	if _, ok := d.upEdges[from][to]; ok {
+	if _, ok := r.upEdges[from][to]; ok {
 		//  up edge entry already exists
 		return
 	}
 	// add entry
-	d.upEdges[from][to] = struct{}{}
+	r.upEdges[from][to] = struct{}{}
 }
 
-func (d *dag) DeleteUpEdge(from, to string) {
-	d.mue.Lock()
-	defer d.mue.Unlock()
+func (r *dag) DeleteUpEdge(from, to string) {
+	r.mue.Lock()
+	defer r.mue.Unlock()
 
 	//fmt.Printf("deleteUpEdge: from: %s, to: %s\n", from, to)
-	if ue, ok := d.upEdges[from]; ok {
-		if _, ok := d.upEdges[from][to]; ok {
+	if ue, ok := r.upEdges[from]; ok {
+		if _, ok := r.upEdges[from][to]; ok {
 			delete(ue, to)
 		}
 	}
 }
 
-func (d *dag) GetUpEdges(from string) []Edge {
-	d.mue.RLock()
-	defer d.mue.RUnlock()
+func (r *dag) GetUpEdges(from string) []Edge {
+	r.mue.RLock()
+	defer r.mue.RUnlock()
 
 	edges := make([]Edge, 0)
-	if fromVertex, ok := d.upEdges[from]; ok {
+	if fromVertex, ok := r.upEdges[from]; ok {
 		for to := range fromVertex {
 			edges = append(edges, Edge{From: from, To: to})
 		}
@@ -183,12 +182,12 @@ func (d *dag) GetUpEdges(from string) []Edge {
 	return edges
 }
 
-func (d *dag) GetUpVertexes(from string) []string {
-	d.mue.RLock()
-	defer d.mue.RUnlock()
+func (r *dag) GetUpVertexes(from string) []string {
+	r.mue.RLock()
+	defer r.mue.RUnlock()
 
 	upVerteces := []string{}
-	if fromVertex, ok := d.upEdges[from]; ok {
+	if fromVertex, ok := r.upEdges[from]; ok {
 		for to := range fromVertex {
 			upVerteces = append(upVerteces, to)
 		}
@@ -196,21 +195,21 @@ func (d *dag) GetUpVertexes(from string) []string {
 	return upVerteces
 }
 
-func (d *dag) GetDependencyMap(from string) {
+func (r *dag) GetDependencyMap(from string) {
 	fmt.Println("######### dependency map verteces start ###########")
-	for vertexName := range d.GetVertices() {
+	for vertexName := range r.GetVertices() {
 		fmt.Printf("%s\n", vertexName)
 	}
 	fmt.Println("######### dependency map verteces end ###########")
 	fmt.Println("######### dependency map start ###########")
-	d.getDependencyMap(from, 0)
+	r.getDependencyMap(from, 0)
 	fmt.Println("######### dependency map end   ###########")
 }
 
-func (d *dag) getDependencyMap(from string, indent int) {
+func (r *dag) getDependencyMap(from string, indent int) {
 	fmt.Printf("%s:\n", from)
-	for _, upVertex := range d.GetUpVertexes(from) {
-		found := d.checkVertex(upVertex)
+	for _, upVertex := range r.GetUpVertexes(from) {
+		found := r.checkVertex(upVertex)
 		if !found {
 			fmt.Printf("upVertex %s no found in vertices\n", upVertex)
 			os.Exit(1)
@@ -218,19 +217,19 @@ func (d *dag) getDependencyMap(from string, indent int) {
 		fmt.Printf("-> %s\n", upVertex)
 	}
 	indent++
-	for _, downVertex := range d.GetDownVertexes(from) {
-		found := d.checkVertex(downVertex)
+	for _, downVertex := range r.GetDownVertexes(from) {
+		found := r.checkVertex(downVertex)
 		if !found {
 			fmt.Printf("upVertex %s no found in vertices\n", downVertex)
 			os.Exit(1)
 		}
-		d.getDependencyMap(downVertex, indent)
+		r.getDependencyMap(downVertex, indent)
 	}
 }
 
-func (d *dag) checkVertex(s string) bool {
+func (r *dag) checkVertex(s string) bool {
 	found := false
-	for vertexName := range d.GetVertices() {
+	for vertexName := range r.GetVertices() {
 		if vertexName == s {
 			return true
 		}
