@@ -44,11 +44,11 @@ func (r *dag) initWalk() {
 		// only run these channels when we want to add dependency validation
 		for _, depVertexName := range r.GetUpVertexes(vertexName) {
 			//fmt.Printf("vertexName: %s, depBVertexName: %s\n", vertexName, depVertexName)
-			depCh := make(chan bool, 1)
+			depCh := make(chan bool)
 			r.walkMap[depVertexName].AddDoneCh(vertexName, depCh) // send when done
 			wCtx.AddDepCh(depVertexName, depCh)                   // rcvr when done
 		}
-		doneFnCh := make(chan bool, 1)
+		doneFnCh := make(chan bool)
 		wCtx.doneFnCh = doneFnCh
 		r.fnDoneMap[vertexName] = doneFnCh
 	}
