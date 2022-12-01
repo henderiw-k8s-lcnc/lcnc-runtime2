@@ -64,7 +64,7 @@ func (r *dag) processTransitiveReducation(from string, depth int) {
 		if bestVertexDepth != 0 {
 			// if an upvertex has a depth of 0 it should not be considered
 			// delete the edges for links that have different vertexDepths
-			if r.getVertexDepth(upVertex) != 0 && r.getVertexDepth(upVertex) != bestVertexDepth  {
+			if r.getVertexDepth(upVertex) != 0 && r.getVertexDepth(upVertex) != bestVertexDepth {
 				fmt.Printf("transitive reduction %s -> %s\n", upVertex, from)
 				r.Disconnect(upVertex, from)
 			}

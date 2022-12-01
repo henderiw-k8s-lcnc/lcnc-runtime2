@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/henderiw-k8s-lcnc/lcnc-runtime2/pkg/executor"
 	"github.com/henderiw-k8s-lcnc/lcnc-runtime2/pkg/lcncsyntax"
 	"github.com/yndd/ndd-runtime/pkg/logging"
 	"gopkg.in/yaml.v2"
@@ -63,8 +64,9 @@ func main() {
 			}
 
 			d.GetDependencyMap(root)
-			d.Walk(context.TODO(), root)
-			d.GetWalkResult()
+			e := executor.New()
+			e.Walk(context.TODO(), d, root)
+			e.GetWalkResult()
 
 		}
 	}
