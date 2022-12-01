@@ -1,6 +1,7 @@
 package dag
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"sync"
@@ -17,7 +18,7 @@ type DAG interface {
 	GetUpVertexes(from string) []string
 
 	GetDependencyMap(from string)
-	Walk(from string)
+	Walk(ctx context.Context, from string)
 	GetWalkResult()
 	TransitiveReduction()
 }
@@ -42,13 +43,15 @@ type dag struct {
 	mvd         sync.RWMutex
 	vertexDepth map[string]int
 	// used for the walker
-	cancelCh chan struct{}
 	mw       sync.RWMutex
 	walkMap  map[string]*vertexContext
 	//mfd       sync.RWMutex
 	fnDoneMap map[string]chan bool
 	mr        sync.RWMutex
 	result    []*ResultEntry
+
+	// to be removed from here
+	cancelFn context.CancelFunc
 }
 
 func NewDAG() DAG {

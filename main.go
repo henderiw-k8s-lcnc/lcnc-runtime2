@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"strings"
@@ -62,9 +63,8 @@ func main() {
 			}
 
 			d.GetDependencyMap(root)
-			d.Walk(root)
+			d.Walk(context.TODO(), root)
 			d.GetWalkResult()
-			
 
 		}
 	}

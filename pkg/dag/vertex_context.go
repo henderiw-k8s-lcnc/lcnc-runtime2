@@ -1,6 +1,7 @@
 package dag
 
 import (
+	"context"
 	"fmt"
 	"sync"
 	"time"
@@ -8,25 +9,24 @@ import (
 
 type vertexContext struct {
 	vertexName string
-	cancelCh chan struct{}
 
 	// used to handle the dependencies between the functions
-	m       sync.RWMutex
+	m sync.RWMutex
 	// used to send fn result from the src function
 	// to the dependent function
 	doneChs map[string]chan bool
 	// used by the dependent vertex function to rcv the result
 	// of the dependent src function
-	depChs  map[string]chan bool
+	depChs map[string]chan bool
 
 	// used to signal the vertex function is done
 	// to the main walk entry
 	doneFnCh chan bool
 
 	// identifies the time the vertex got scheduled
-	visited  time.Time
+	visited time.Time
 	// identifies the time the vertex fn started
-	start    time.Time
+	start time.Time
 	// identifies the time the vertex fn finished
 	finished time.Time
 
@@ -47,6 +47,8 @@ func (r *vertexContext) AddDepCh(n string, c chan bool) {
 }
 
 func (r *vertexContext) isFinished() bool {
+	r.m.RLock()
+	defer r.m.RUnlock()
 	return !r.finished.IsZero()
 }
 
@@ -57,9 +59,8 @@ func (r *vertexcontext) hasStarted() bool {
 */
 
 func (r *vertexContext) isVisted() bool {
-	if r == nil {
-		return true
-	}
+	r.m.RLock()
+	defer r.m.RUnlock()
 	return !r.visited.IsZero()
 }
 
@@ -67,12 +68,16 @@ func (r *vertexContext) getDuration() time.Duration {
 	return r.finished.Sub(r.start)
 }
 
-func (r *vertexContext) run() {
+func (r *vertexContext) run(ctx context.Context) {
 
+	r.m.Lock()
 	r.start = time.Now()
+	r.m.Unlock()
 	// todo execute the function
 	fmt.Printf("%s fn executed, doneChs: %v\n", r.vertexName, r.doneChs)
+	r.m.Lock()
 	r.finished = time.Now()
+	r.m.Unlock()
 
 	// callback function to capture the result
 	r.recordResult(&ResultEntry{vertexName: r.vertexName, duration: r.getDuration()})
@@ -83,13 +88,13 @@ func (r *vertexContext) run() {
 		close(doneCh)
 		fmt.Printf("%s -> %s send done\n", r.vertexName, vertexName)
 	}
-	// signal the result of the vertex execution to the main walk 
+	// signal the result of the vertex execution to the main walk
 	r.doneFnCh <- true
 	close(r.doneFnCh)
 	fmt.Printf("%s -> walk main fn done\n", r.vertexName)
 }
 
-func (r *vertexContext) waitDependencies() bool {
+func (r *vertexContext) waitDependencies(ctx context.Context) bool {
 	// for each dependency wait till a it completed, either through
 	// the dependency Channel or cancel or
 
@@ -110,9 +115,6 @@ DepSatisfied:
 					return false
 				}
 				continue DepSatisfied
-			case <-r.cancelCh:
-				// we can return, since someone cancelled the operation
-				return false
 			case <-time.After(time.Second * 5):
 				fmt.Printf("wait timeout vertex: %s is waiting for %s\n", r.vertexName, depVertexName)
 			}

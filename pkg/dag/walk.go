@@ -1,15 +1,19 @@
 package dag
 
 import (
+	"context"
 	"fmt"
 	"time"
 )
 
-func (r *dag) Walk(from string) {
+func (r *dag) Walk(ctx context.Context, from string) {
 	// walk initialization
 	r.initWalk()
 	start := time.Now()
-	r.walk(from, true, 1)
+	ctx, cancelFn := context.WithCancel(ctx)
+	// to be changed
+	r.cancelFn = cancelFn
+	r.walk(ctx, from, true, 1)
 	// add total as a last entry in the result
 	r.recordResult(&ResultEntry{
 		vertexName: "total",
@@ -19,16 +23,15 @@ func (r *dag) Walk(from string) {
 
 func (r *dag) initWalk() {
 	//d.wg = new(sync.WaitGroup)
-	r.cancelCh = make(chan struct{})
 	r.result = []*ResultEntry{}
 	r.walkMap = map[string]*vertexContext{}
 	for vertexName := range r.GetVertices() {
 		//fmt.Printf("init vertexName: %s\n", vertexName)
 		r.walkMap[vertexName] = &vertexContext{
 			vertexName: vertexName,
-			cancelCh:   r.cancelCh,
-			doneChs:    make(map[string]chan bool), //snd
-			depChs:     make(map[string]chan bool), //rcv
+			//cancelFn:   cancelFn,
+			doneChs: make(map[string]chan bool), //snd
+			depChs:  make(map[string]chan bool), //rcv
 			// callback to gather the result
 			recordResult: r.recordResult,
 		}
@@ -54,34 +57,36 @@ func (r *dag) initWalk() {
 	}
 }
 
-func (r *dag) walk(from string, init bool, depth int) {
+func (r *dag) walk(ctx context.Context, from string, init bool, depth int) {
 	wCtx := r.getWalkContext(from)
 	// avoid scheduling a vertex that is already visted
 	if !wCtx.isVisted() {
+		wCtx.m.Lock()
 		wCtx.visited = time.Now()
+		wCtx.m.Unlock()
 		// execute the vertex function
 		fmt.Printf("%s scheduled\n", wCtx.vertexName)
 		go func() {
 			if !r.dependenciesFinished(wCtx.depChs) {
 				fmt.Printf("%s not finished\n", from)
 			}
-			if !wCtx.waitDependencies() {
+			if !wCtx.waitDependencies(ctx) {
 				// TODO gather info why the failure occured
 				return
 			}
 			// execute the vertex function
-			wCtx.run()
+			wCtx.run(ctx)
 		}()
 	}
 	// continue walking the graph
 	depth++
 	for _, downEdge := range r.GetDownVertexes(from) {
 		go func(downEdge string) {
-			r.walk(downEdge, false, depth)
+			r.walk(ctx, downEdge, false, depth)
 		}(downEdge)
 	}
 	if init {
-		r.waitFunctionCompletion()
+		r.waitFunctionCompletion(ctx)
 	}
 }
 
@@ -100,7 +105,7 @@ func (r *dag) dependenciesFinished(dep map[string]chan bool) bool {
 	return true
 }
 
-func (r *dag) waitFunctionCompletion() {
+func (r *dag) waitFunctionCompletion(ctx context.Context) {
 	fmt.Printf("main walk wait waiting for function completion...\n")
 DepSatisfied:
 	for vertexName, doneFnCh := range r.fnDoneMap {
@@ -108,10 +113,13 @@ DepSatisfied:
 			select {
 			case d, ok := <-doneFnCh:
 				fmt.Printf("main walk wait rcvd fn done from %s, d: %t, ok: %t\n", vertexName, d, ok)
-
+				if !d {
+					r.cancelFn()
+					return
+				}
 				continue DepSatisfied
-			case <-r.cancelCh:
-				// we can return, since someone cancelled the operation
+			case <-ctx.Done():
+				// called when the controller gets cancelled
 				return
 			case <-time.After(time.Second * 5):
 				fmt.Printf("main walk wait timeout, waiting for %s\n", vertexName)
