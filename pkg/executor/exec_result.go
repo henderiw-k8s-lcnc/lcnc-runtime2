@@ -1,4 +1,4 @@
-package dag
+package executor
 
 import (
 	"fmt"
@@ -14,13 +14,13 @@ type ResultEntry struct {
 	duration   time.Duration
 }
 
-func (r *dag) recordResult(re *ResultEntry) {
+func (r *exectutor) recordResult(re *ResultEntry) {
 	r.mr.Lock()
 	defer r.mr.Unlock()
 	r.result = append(r.result, re)
 }
 
-func (r *dag) GetWalkResult() {
+func (r *exectutor) GetWalkResult() {
 	r.mr.RLock()
 	defer r.mr.RUnlock()
 	for i, result := range r.result {
